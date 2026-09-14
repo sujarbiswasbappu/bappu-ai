@@ -1,0 +1,33 @@
+{
+  "name": "bappu-ai-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for bappu.ai Assignment Helper",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "next": "^13.4.0",
+    "tailwindcss": "^3.3.0",
+    "framer-motion": "^10.12.0",
+    "axios": "^1.4.0",
+    "zustand": "^4.3.8",
+    "react-hot-toast": "^2.4.1",
+    "react-icons": "^4.10.1",
+    "clsx": "^1.2.1",
+    "date-fns": "^2.30.0",
+    "next-auth": "^4.22.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/node": "^20.0.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.0.0",
+    "postcss": "^8.4.24",
+    "autoprefixer": "^10.4.14"
+  }
+}
