@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Model - Admin can only see: mobile, profile info, usage metrics
+model User {
+  id                    String    @id @default(cuid())
+  phoneNumber           String    @unique
+  countryCode           String    @default("+1")
+  isPhoneVerified       Boolean   @default(false)
+  
+  // Profile Information
+  firstName             String?
+  lastName              String?
+  email                 String?   @unique
+  institution           String?
+  profilePictureUrl     String?
+  
+  // Account Status
+  isActive              Boolean   @default(true)
+  accountCreatedAt      DateTime  @default(now())
+  lastLoginAt           DateTime?
+  
+  // Privacy: Chats, Images, and Outputs are NOT accessible to admin
+  assignments           Assignment[]
+  sessions              Session[]
+  exports               Export[]
+  
+  // Analytics (admin visible)
+  totalAssignmentsGenerated Int @default(0)
+  totalExportsCreated       Int @default(0)
+  storageUsedMB            Float @default(0)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@index([phoneNumber])
+  @@index([isActive])
+}
+
+// OTP Verification Model
+model OTPVerification {
+  id              String    @id @default(cuid())
+  phoneNumber     String    @unique
+  countryCode     String
+  otp             String    @db.VarChar(6)
+  isVerified      Boolean   @default(false)
+  expiresAt       DateTime
+  attempts        Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([phoneNumber])
+  @@index([expiresAt])
+}
+
+// Assignment Model - Private, NOT accessible to admin
+model Assignment {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Input
+  inputType         String    // "text" or "image"
+  textPrompt        String?   @db.Text
+  imageUrl          String?   // Uploaded image URL (private)
+  extractedText     String?   @db.Text // OCR extracted text from image
+  
+  // AI Generated Content (Private - NOT for admin)
+  generatedContent  String?   @db.Text
+  citations         Citation[]
+  
+  // Metadata
+  title             String?
+  topic             String?
+  status            String    @default("pending") // pending, processing, completed, failed
+  estimatedReadTime Int?
+  wordCount         Int       @default(0)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Citation Model for Academic Sources
+model Citation {
+  id              String    @id @default(cuid())
+  assignmentId    String
+  assignment      Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  
+  title           String
+  authors         String?   @db.Text
+  url             String
+  sourceType      String    // "google_scholar", "arxiv", "jstor", "web"
+  publishedDate   DateTime?
+  abstract        String?   @db.Text
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([assignmentId])
+}
+
+// Session Model - For tracking user activity
+model Session {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  sessionToken    String    @unique
+  userAgent       String?
+  ipAddress       String?
+  
+  expiresAt       DateTime
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([isActive])
+}
+
+// Export Model - Tracks file exports (private)
+model Export {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  assignmentId    String?
+  format          String    // "pdf", "docx", "pptx", "png", "jpg"
+  fileUrl         String
+  fileName        String
+  fileSizeMB      Float
+  
+  isPublic        Boolean   @default(false)
+  shareLink       String?   @unique
+  shareExpiresAt  DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([isPublic])
+}
+
+// Admin Activity Log - For audit trail
+model AdminActivityLog {
+  id              String    @id @default(cuid())
+  adminId         String
+  action          String    // "view_user", "view_analytics", etc.
+  targetUserId    String?
+  description     String?   @db.Text
+  ipAddress       String?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([adminId])
+  @@index([createdAt])
+}
